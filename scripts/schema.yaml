@@ -1,0 +1,127 @@
+nodes:
+  Biomarker:
+    id: biomarker_id (e.g. EM6323-2)
+    description: A measurable change in one glycan or a glycan-protein pair, independent of context.
+    properties:
+      name: string  - most frequent biomarker text
+      synonyms: list    - other biomarker texts used for this biomarker_id
+      controlled_vocab: list    - biomarker_controlled_vocab values
+      change_type: string  - increased | decreased | altered | presence of | absence of
+      aspect_type: string  - level | not_specified
+      composition: string  - glycan | glycan+protein
+  BiomarkerAssertion:
+    id: BMA:<biomarker_index> (e.g. BMA:21)
+    description: One reported use of a biomarker in a condition/specimen/publication context (one per biomarker_index).
+    properties:
+      name: string  - biomarker text as written for this assertion
+      biomarker_index: int
+      best_biomarker_role: string  - diagnostic | prognostic | predictive | response | monitoring | susceptibility
+  Glycan:
+    id: bGSL:<uuid>
+    description: Glycan identified by the in-house bGSL identifier.
+    properties:
+      name: string
+      synonyms: list
+  Protein:
+    id: bare UniProtKB accession (e.g. P06731)
+    description: 'Protein; UPKB: prefix and isoform suffix removed.'
+    properties:
+      name: string
+      synonyms: list
+      uniprot_canonical_isoform: string  - canonical isoform from masterlist, if present
+      uniprot_status: string  - reviewed | (blank if not in masterlist)
+      in_masterlist: bool
+  Gene:
+    id: GENE:<symbol> (e.g. GENE:CEACAM5)
+    description: Gene symbol from the protein masterlist.
+    properties:
+      name: string  - gene symbol
+  Isoform:
+    id: UniProtKB isoform accession (e.g. P06731-2, M0QX98-1)
+    description: Reviewed or unreviewed isoform listed in the masterlist.
+    properties:
+      name: string
+      isoform_status: string  - reviewed | unreviewed
+  Condition:
+    id: DOID:<n>
+    description: Disease Ontology term; includes DOID ancestors so related conditions can be grouped.
+    properties:
+      name: string  - official DOID name (falls back to dataset label)
+      synonyms: list    - labels used in the dataset
+      in_dataset: bool    - true if directly referenced by a biomarker, false if added as an ancestor
+      obsolete: bool
+  TissueType:
+    id: UBERON:<n>
+    description: Anatomical specimen (fluid or tissue).
+    properties:
+      name: string
+      synonyms: list
+  CellType:
+    id: CL:<n>
+    description: Cell-type specimen.
+    properties:
+      name: string
+      synonyms: list
+  Publication:
+    id: PubMed:<pmid>
+    description: Supporting publication.
+    properties:
+      name: string  - PMID
+relationships:
+  HAS_COMPONENT:
+    source: Biomarker
+    target:
+    - Glycan
+    - Protein
+    properties:
+      entity_index: int
+      entity_type: string
+  GLYCAN_ON_PROTEIN:
+    source: Glycan
+    target: Protein
+    description: Derived from glycan+protein biomarker pairs (glycoform). One edge per glycan-protein pair.
+    properties:
+      biomarker_ids: list
+      condition_ids: list
+      n_assertions: int
+  ASSERTS:
+    source: BiomarkerAssertion
+    target: Biomarker
+    properties: {}
+  ASSOCIATED_WITH:
+    source: BiomarkerAssertion
+    target: Condition
+    properties:
+      best_biomarker_role: string
+      change_type: string
+      condition_label: string  - label as written in the source row
+  MEASURED_IN:
+    source: BiomarkerAssertion
+    target:
+    - TissueType
+    - CellType
+    properties:
+      specimen_label: string  - label as written in the source row
+  SUPPORTED_BY:
+    source: BiomarkerAssertion
+    target: Publication
+    properties:
+      evidence: string  - evidence sentences from the source row
+  ENCODED_BY:
+    source: Protein
+    target: Gene
+    properties: {}
+  HAS_ISOFORM:
+    source: Protein
+    target: Isoform
+    properties:
+      isoform_status: string
+      is_canonical: bool
+  IS_A:
+    source: Condition
+    target: Condition
+    description: Disease Ontology is_a hierarchy (child -> parent).
+    properties: {}
+conventions:
+  multi_value_delimiter: '|'
+  node_key: node_id (ontology/database identifier; labels are never used as keys)
